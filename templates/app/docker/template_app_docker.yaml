@@ -1,6 +1,6 @@
 zabbix_export:
   version: '5.2'
-  date: '2020-10-16T09:32:59Z'
+  date: '2020-11-12T03:23:11Z'
   groups:
     -
       name: Templates/Applications
@@ -1058,6 +1058,16 @@ zabbix_export:
                     - 1d
               master_item:
                 key: 'docker.container_info["{#NAME}"]'
+              trigger_prototypes:
+                -
+                  expression: |
+                    {nodata(60)}=0
+                    and
+                    {diff()}=1
+                  name: 'Container {#NAME}: Container is restarting'
+                  opdata: 'Exit code: {ITEM.LASTVALUE1}'
+                  priority: AVERAGE
+                  manual_close: 'YES'
             -
               name: 'Container {#NAME}: Dead'
               type: DEPENDENT
@@ -1127,6 +1137,48 @@ zabbix_export:
                   type: DISCARD_UNCHANGED_HEARTBEAT
                   parameters:
                     - 1d
+              master_item:
+                key: 'docker.container_info["{#NAME}"]'
+            -
+              name: 'Container {#NAME}: FailingStreak'
+              type: DEPENDENT
+              key: 'docker.container_info.state.failingstreak["{#NAME}"]'
+              delay: '0'
+              history: 7d
+              application_prototypes:
+                -
+                  name: 'Docker: Container {#NAME}'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.State.Health.FailingStreak
+                -
+                  type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1h
+              master_item:
+                key: 'docker.container_info["{#NAME}"]'
+            -
+              name: 'Container {#NAME}: Health'
+              type: DEPENDENT
+              key: 'docker.container_info.state.health["{#NAME}"]'
+              delay: '0'
+              history: 7d
+              trends: '0'
+              value_type: CHAR
+              application_prototypes:
+                -
+                  name: 'Docker: Container {#NAME}'
+              preprocessing:
+                -
+                  type: JSONPATH
+                  parameters:
+                    - $.State.Health.Status
+                -
+                  type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1h
               master_item:
                 key: 'docker.container_info["{#NAME}"]'
             -
@@ -1705,6 +1757,17 @@ zabbix_export:
             -
               expression: '{Docker:docker.container_info.state.exitcode["{#NAME}"].last()}>0 and {Docker:docker.container_info.state.running["{#NAME}"].last()}=0'
               name: 'Container {#NAME}: Container has been stopped with error code'
+              opdata: 'Exit code: {ITEM.LASTVALUE1}'
+              priority: AVERAGE
+              manual_close: 'YES'
+            -
+              expression: |
+                {Docker:docker.container_info.state.health["{#NAME}"].str("unhealthy")}=1
+                and
+                {Docker:docker.container_info.state.running["{#NAME}"].last()}=1
+                and
+                {Docker:docker.container_info.state.failingstreak["{#NAME}"].last()}>1
+              name: 'Container {#NAME}: Container has been unhealthy'
               opdata: 'Exit code: {ITEM.LASTVALUE1}'
               priority: AVERAGE
               manual_close: 'YES'

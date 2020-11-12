@@ -32,7 +32,7 @@ import (
 
 const (
 	pluginName    = "Docker"
-	dockerVersion = "1.28"
+	dockerVersion = "1.40"
 )
 
 type containerDiscovery struct {

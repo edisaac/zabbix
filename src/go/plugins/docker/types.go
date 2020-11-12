@@ -106,6 +106,13 @@ type ContainerState struct {
 	Error             string
 	StartedAt         unixTime
 	FinishedAt        unixTime
+	Health            ContainerHealth
+}
+
+// ContainerHealth represents the health state of a container.
+type ContainerHealth struct {
+	Status            string
+	FailingStreak     int
 }
 
 // Info contains response of Engine API:
